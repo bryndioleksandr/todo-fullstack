@@ -3,14 +3,17 @@
 import { useMutation, useQueryClient } from "react-query";
 import { createTask } from "@/api/task";
 import { useEffect, useState } from "react";
-import { Snackbar, Alert } from "@mui/material";
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, TextField } from "@mui/material";
 
 interface TodoModalProps {
+    open: boolean;
     onClose: () => void;
 }
 
-export default function TodoModal({ onClose }: TodoModalProps) {
+export default function TodoModal({ open, onClose }: TodoModalProps) {
     const [user, setUser] = useState<{ id: string; username: string } | null>(null);
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
     const [successOpen, setSuccessOpen] = useState(false);
 
     useEffect(() => {
@@ -30,6 +33,8 @@ export default function TodoModal({ onClose }: TodoModalProps) {
             onSuccess: () => {
                 queryClient.invalidateQueries(["tasks"]);
                 setSuccessOpen(true);
+                setTitle("");
+                setDescription("");
                 onClose();
             },
         }
@@ -41,27 +46,42 @@ export default function TodoModal({ onClose }: TodoModalProps) {
             alert("User not found. Please log in again.");
             return;
         }
-
-        const form = e.currentTarget;
-        const title = (form.elements.namedItem("title") as HTMLInputElement).value;
-        const description = (form.elements.namedItem("description") as HTMLInputElement).value;
-
-        mutation.mutate({
-            userId: user.id,
-            title,
-            description,
-        });
+        mutation.mutate({ userId: user.id, title, description });
     };
 
     return (
         <>
-            <form onSubmit={handleSubmit}>
-                <input name="title" placeholder="Title" required />
-                <input name="description" placeholder="Description" required />
-                <button type="submit" disabled={mutation.isLoading}>
-                    {mutation.isLoading ? "Adding..." : "Add Task"}
-                </button>
-            </form>
+            <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+                <DialogTitle>Add Task</DialogTitle>
+                <DialogContent>
+                    <form onSubmit={handleSubmit} id="todo-create-form">
+                        <TextField
+                            margin="normal"
+                            label="Title"
+                            fullWidth
+                            required
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                        />
+                        <TextField
+                            margin="normal"
+                            label="Description"
+                            fullWidth
+                            required
+                            multiline
+                            rows={3}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                        />
+                    </form>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={onClose}>Cancel</Button>
+                    <Button type="submit" form="todo-create-form" variant="contained" disabled={mutation.isLoading || !title.trim()}>
+                        {mutation.isLoading ? "Adding..." : "Add"}
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <Snackbar
                 open={successOpen}

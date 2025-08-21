@@ -79,10 +79,11 @@ export const getTasksByStatus = async (req, res) => {
 
 export const updateTask = async (req, res) => {
     try {
-        const {id} = req.params;
+        const {taskId} = req.params;
         const {title, description, status} = req.body;
 
-        const task = await Task.findByPk(id);
+        console.log('task id update is: ', taskId);
+        const task = await Task.findByPk(taskId);
         if (!task) return res.status(404).json({msg: "Task not found"});
 
         task.title = title ?? task.title;
@@ -98,8 +99,8 @@ export const updateTask = async (req, res) => {
 
 export const deleteTask = async (req, res) => {
     try {
-        const {id} = req.params;
-        const task = await Task.findByPk(id);
+        const {taskId} = req.params;
+        const task = await Task.findByPk(taskId);
         if (!task) return res.status(404).json({msg: "Task not found"});
 
         await task.destroy();

@@ -22,16 +22,16 @@ export const fetchTaskById = async (taskId: string): Promise<void> => {
 }
 
 export const updateTask = async (taskId: string, task: {title?: string; description?: string; status?: string})=> {
-    const res = await api.put(`/task/${taskId}`, task);
+    console.log('task id front is:', taskId);
+    const res = await api.put(`/task/tasks/${taskId}`, task);
     return res.data;
 }
 
 export const deleteTask = async (taskId: string) => {
-    const res = await api.delete(`/task/${taskId}`);
+    console.log('task id front delete:', taskId);
+    const res = await api.delete(`/task/tasks/${taskId}`);
     return res.data;
 }
-
-//user-tasks/:userId
 
 export const fetchUserTasks = async (userId: string) => {
     const res = await api.get(`/task/user-tasks/${userId}`);
