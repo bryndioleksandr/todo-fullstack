@@ -12,3 +12,12 @@ export const sequelize = new Sequelize(
         dialect: "postgres",
     }
 );
+
+export const connectDB = async() => {
+    try {
+        await sequelize.authenticate();
+    } catch (error) {
+        console.error("couldnt connect to db:", error);
+        process.exit(1);
+    }
+}
