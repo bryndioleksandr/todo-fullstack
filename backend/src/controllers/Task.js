@@ -5,6 +5,7 @@ import {Op} from "sequelize";
 export const createTask = async (req, res) => {
     try {
         const {title, description, status, userId} = req.body;
+        console.log('user id is ', userId);
         const user = await User.findByPk(userId);
         if (!user) return res.status(404).json({msg: "User not found"});
 
@@ -41,6 +42,20 @@ export const getTaskById = async (req, res) => {
         res.status(500).json({msg: err.message});
     }
 };
+
+export const getAllUserTasks = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) {
+            return res.status(400).json({ msg: "User ID is required" });
+        }
+
+        const tasks = await Task.findAll({where: {UserId: userId}});
+        res.json(tasks);
+    } catch (err) {
+        res.status(500).json({msg: err.message});
+    }
+}
 
 export const getTasksByStatus = async (req, res) => {
     try {
