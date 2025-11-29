@@ -11,8 +11,8 @@ export const fetchTasksByStatus = async (statuses: string | string []) => {
     return res.data;
 }
 
-export const createTask = async (userId: string, title: string, description: string, status?: string) => {
-    const res = await api.post("task/task", {userId, title, description, status});
+export const createTask = async (userId: string, title: string, description: string, priority: number, status?: string) => {
+    const res = await api.post("task/task", {userId, title, description, status, priority});
     return res.data;
 }
 
@@ -21,7 +21,7 @@ export const fetchTaskById = async (taskId: string): Promise<void> => {
     return res.data;
 }
 
-export const updateTask = async (taskId: string, task: {title?: string; description?: string; status?: string})=> {
+export const updateTask = async (taskId: string, task: {title?: string; description?: string; status?: string, priority?:number})=> {
     console.log('task id front is:', taskId);
     const res = await api.put(`/task/tasks/${taskId}`, task);
     return res.data;

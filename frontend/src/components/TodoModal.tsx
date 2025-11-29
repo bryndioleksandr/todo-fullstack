@@ -2,18 +2,30 @@
 
 import { useMutation, useQueryClient } from "react-query";
 import { createTask } from "@/api/task";
-import { useEffect, useState } from "react";
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, TextField } from "@mui/material";
+import { SetStateAction, useEffect, useState} from "react";
+import {
+    Alert,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Slider,
+    Snackbar,
+    TextField
+} from "@mui/material";
+import Typography from "@mui/material/Typography";
 
 interface TodoModalProps {
     open: boolean;
     onClose: () => void;
 }
 
-export default function TodoModal({ open, onClose }: TodoModalProps) {
+export default function TodoModal({open, onClose}: TodoModalProps) {
     const [user, setUser] = useState<{ id: string; username: string } | null>(null);
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
+    const [priority, setPriority] = useState(1);
     const [successOpen, setSuccessOpen] = useState(false);
 
     useEffect(() => {
@@ -26,8 +38,13 @@ export default function TodoModal({ open, onClose }: TodoModalProps) {
     const queryClient = useQueryClient();
 
     const mutation = useMutation(
-        async ({ userId, title, description }: { userId: string; title: string; description: string }) => {
-            return await createTask(userId, title, description);
+        async ({userId, title, description, priority}: {
+            userId: string;
+            title: string;
+            description: string,
+            priority: number
+        }) => {
+            return await createTask(userId, title, description, priority);
         },
         {
             onSuccess: () => {
@@ -46,7 +63,11 @@ export default function TodoModal({ open, onClose }: TodoModalProps) {
             alert("User not found. Please log in again.");
             return;
         }
-        mutation.mutate({ userId: user.id, title, description });
+        mutation.mutate({userId: user.id, title, description, priority});
+    };
+
+    const handleChangePriority = (event: any, newValue: SetStateAction<number>) => {
+        setPriority(newValue);
     };
 
     return (
@@ -72,6 +93,19 @@ export default function TodoModal({ open, onClose }: TodoModalProps) {
                             rows={3}
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
+                        />
+                        <Typography gutterBottom>Priority</Typography>
+                        <Slider
+                            defaultValue={1}
+                            step={1}
+                            min={1}
+                            max={10}
+                            valueLabelDisplay="auto"
+                            marks={[
+                                { value: 1, label: 'Low' },
+                                { value: 10, label: 'High' },
+                            ]}
+                            onChange={handleChangePriority}
                         />
                     </form>
                 </DialogContent>

@@ -4,7 +4,7 @@ import {Op} from "sequelize";
 
 export const createTask = async (req, res) => {
     try {
-        const {title, description, status, userId} = req.body;
+        const {title, description, status, priority, userId} = req.body;
         console.log('user id is ', userId);
         const user = await User.findByPk(userId);
         if (!user) return res.status(404).json({msg: "User not found"});
@@ -13,6 +13,7 @@ export const createTask = async (req, res) => {
             title,
             description,
             status,
+            priority,
             UserId: userId
         });
         return res.status(201).json(task);
@@ -80,7 +81,7 @@ export const getTasksByStatus = async (req, res) => {
 export const updateTask = async (req, res) => {
     try {
         const {taskId} = req.params;
-        const {title, description, status} = req.body;
+        const {title, description, status, priority} = req.body;
 
         console.log('task id update is: ', taskId);
         const task = await Task.findByPk(taskId);
@@ -89,6 +90,7 @@ export const updateTask = async (req, res) => {
         task.title = title ?? task.title;
         task.description = description ?? task.description;
         task.status = status ?? task.status;
+        task.priority = priority ?? task.priority;
 
         await task.save();
         res.json(task);

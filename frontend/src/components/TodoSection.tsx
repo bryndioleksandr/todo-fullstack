@@ -18,7 +18,7 @@ export default function TodoSection() {
     const handleOpenModal = () => setOpen(true);
     const handleCloseModal = () => setOpen(false);
 
-    if (!user) return <Typography variant="h6">Будь ласка, увійдіть, щоб побачити завдання</Typography>;
+    if (!user) return <Typography variant="h6">Log in, please, to see the tasks</Typography>;
 
     return (
         <div className="p-4 max-w-xl mx-auto">

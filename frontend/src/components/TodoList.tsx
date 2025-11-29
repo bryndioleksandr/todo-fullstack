@@ -19,7 +19,7 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
-    DialogActions,
+    DialogActions, MenuItem,
 } from "@mui/material";
 import { Delete, Edit } from "@mui/icons-material";
 
@@ -37,6 +37,7 @@ export default function TodoList() {
     const [editingTask, setEditingTask] = useState<any>(null);
     const [editFormData, setEditFormData] = useState<EditFormData>({ title: "", description: "" });
     const [successOpen, setSuccessOpen] = useState(false);
+    const [sortBy, setSortBy] = useState("");
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
@@ -63,7 +64,7 @@ export default function TodoList() {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries(["tasks"]);
-                setSuccessMessage("Завдання успішно видалено!");
+                setSuccessMessage("Task is deleted successfully!");
                 setSuccessOpen(true);
             },
         }
@@ -73,9 +74,28 @@ export default function TodoList() {
         ({ taskId, status }: { taskId: string; status: string }) =>
             updateTask(taskId, { status }),
         {
+            onMutate: async ({ taskId, status }) => {
+                await queryClient.cancelQueries(["tasks", user?.id]);
+
+                const previousTasks = queryClient.getQueryData(["tasks", user?.id]);
+
+                queryClient.setQueryData(["tasks", user?.id], (old: any) => {
+                    if (!old) return old;
+                    return old.map((task: any) =>
+                        String(task.id) === String(taskId) ? { ...task, status } : task
+                    );
+                });
+
+                return { previousTasks };
+            },
+            onError: (err, variables, context) => {
+                if (context?.previousTasks) {
+                    queryClient.setQueryData(["tasks", user?.id], context.previousTasks);
+                }
+            },
             onSuccess: () => {
-                queryClient.invalidateQueries(["tasks"]);
-                setSuccessMessage("Статус завдання оновлено!");
+                queryClient.invalidateQueries(["tasks", user?.id]);
+                setSuccessMessage("Status is updated!");
                 setSuccessOpen(true);
             },
         }
@@ -87,7 +107,7 @@ export default function TodoList() {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries(["tasks"]);
-                setSuccessMessage("Завдання успішно оновлено!");
+                setSuccessMessage("Task is updated successfully!");
                 setSuccessOpen(true);
                 setEditingTask(null);
                 setEditFormData({ title: "", description: "" });
@@ -131,9 +151,9 @@ export default function TodoList() {
         setEditFormData({ title: "", description: "" });
     };
 
-    if (!user) return <Typography variant="h6">Будь ласка, увійдіть, щоб побачити завдання</Typography>;
+    if (!user) return <Typography variant="h6">Log in, please, to see the tasks</Typography>;
     if (isLoading) return <CircularProgress />;
-    if (error) return <Typography color="error">Помилка завантаження завдань</Typography>;
+    if (error) return <Typography color="error">Error during loading tasks</Typography>;
 
     const filteredTasks = tasks?.filter((task: any) =>
         task.title.toLowerCase().includes(search.toLowerCase())
@@ -141,7 +161,20 @@ export default function TodoList() {
 
     const visibleTasks = filteredTasks?.filter((task: any) =>
         statusFilter === "all" ? true : task.status === statusFilter
-    );
+    )?.sort((a: any, b: any) => {
+        if (sortBy === "priority-desc") {
+            return (b.priority || 0) - (a.priority || 0);
+        }
+
+        if (sortBy === "priority-asc") {
+            return (a.priority || 0) - (b.priority || 0);
+        }
+
+        if (a.createdAt && b.createdAt) {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        return (b.id || 0) - (a.id || 0);
+    });
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -159,7 +192,7 @@ export default function TodoList() {
     return (
         <Box sx={{ maxWidth: 600, mx: "auto", p: 2 }}>
             <TextField
-                label="Пошук завдань"
+                label="Search"
                 variant="outlined"
                 fullWidth
                 color="primary"
@@ -216,100 +249,125 @@ export default function TodoList() {
                     },
                 }}
             >
-                <ToggleButton value="all">Усі</ToggleButton>
+                <ToggleButton value="all">ALL</ToggleButton>
                 <ToggleButton value="todo">To Do</ToggleButton>
                 <ToggleButton value="in-progress">In Progress</ToggleButton>
                 <ToggleButton value="done">Done</ToggleButton>
             </ToggleButtonGroup>
 
+            <TextField
+                select
+                label="Sort"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                fullWidth
+                sx={{ mb: 2,
+                    "*":{color:"#1976d2", borderColor:"#1976d2"},
+                }}
+            >
+                <MenuItem value="newest">Newest first</MenuItem>
+                <MenuItem value="priority-desc">Priority DESC</MenuItem>
+                <MenuItem value="priority-asc">Priority ASC</MenuItem>
+            </TextField>
+
             {visibleTasks?.length ? (
-                visibleTasks.map((task: any) => (
-                    <Card key={task.id} sx={{ mb: 2, boxShadow: 3 }}>
-                        <CardContent>
-                            <Typography variant="h6">{task.title}</Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                {task.description}
-                            </Typography>
+                visibleTasks.map((task: any) => {
+                    const currentTaskId = task.id;
+                    return (
+                        <Card key={currentTaskId} sx={{ mb: 2, boxShadow: 3 }}>
+                            <CardContent>
+                                <Typography variant="h6">{task.title}</Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    {task.description}
+                                </Typography>
 
-                            <Box sx={{ display: "flex", alignItems: "center", mb: 2, gap: 1 }}>
-                                <Typography variant="body2">Статус:</Typography>
-                                <Chip
-                                    label={task.status}
-                                    color={getStatusColor(task.status) as any}
-                                />
-                            </Box>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 2, gap: 1 }}>
+                                    <Typography variant="body2">Status:</Typography>
+                                    <Chip
+                                        label={task.status}
+                                        color={getStatusColor(task.status) as any}
+                                    />
+                                </Box>
+                                <Box sx={{ display: "flex", alignItems: "center", mb: 2, gap: 1 }}>
+                                    <Typography variant="body2">Priority:</Typography>
+                                    <Chip
+                                        label={task.priority+' / 10'}
+                                        color={getStatusColor(task.status) as any}
+                                    />
+                                </Box>
 
-                            <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
-                                <Button
-                                    variant={task.status === "todo" ? "contained" : "outlined"}
-                                    color="primary"
-                                    size="small"
-                                    onClick={() => handleStatusChange(task.id, "todo")}
-                                    disabled={updateStatusMutation.isLoading || task.status === "todo"}
-                                >
-                                    To Do
-                                </Button>
-                                <Button
-                                    variant={task.status === "in-progress" ? "contained" : "outlined"}
-                                    color="warning"
-                                    size="small"
-                                    onClick={() => handleStatusChange(task.id, "in-progress")}
-                                    disabled={updateStatusMutation.isLoading || task.status === "in-progress"}
-                                >
-                                    In Progress
-                                </Button>
-                                <Button
-                                    variant={task.status === "done" ? "contained" : "outlined"}
-                                    color="success"
-                                    size="small"
-                                    onClick={() => handleStatusChange(task.id, "done")}
-                                    disabled={updateStatusMutation.isLoading || task.status === "done"}
-                                >
-                                    Done
-                                </Button>
-                            </Box>
+                                <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
+                                    <Button
+                                        variant={task.status === "todo" ? "contained" : "outlined"}
+                                        color="primary"
+                                        size="small"
+                                        onClick={() => handleStatusChange(currentTaskId, "todo")}
+                                        disabled={updateStatusMutation.isLoading || task.status === "todo"}
+                                    >
+                                        To Do
+                                    </Button>
+                                    <Button
+                                        variant={task.status === "in-progress" ? "contained" : "outlined"}
+                                        color="warning"
+                                        size="small"
+                                        onClick={() => handleStatusChange(currentTaskId, "in-progress")}
+                                        disabled={updateStatusMutation.isLoading || task.status === "in-progress"}
+                                    >
+                                        In Progress
+                                    </Button>
+                                    <Button
+                                        variant={task.status === "done" ? "contained" : "outlined"}
+                                        color="success"
+                                        size="small"
+                                        onClick={() => handleStatusChange(currentTaskId, "done")}
+                                        disabled={updateStatusMutation.isLoading || task.status === "done"}
+                                    >
+                                        Done
+                                    </Button>
+                                </Box>
 
-                            <Box sx={{ display: "flex", gap: 1 }}>
-                                <Button
-                                    variant="outlined"
-                                    color="error"
-                                    startIcon={<Delete />}
-                                    size="small"
-                                    onClick={() => handleDelete(task.id)}
-                                    disabled={deleteMutation.isLoading}
-                                >
-                                    Видалити
-                                </Button>
+                                <Box sx={{ display: "flex", gap: 1 }}>
+                                    <Button
+                                        variant="outlined"
+                                        color="error"
+                                        startIcon={<Delete />}
+                                        size="small"
+                                        onClick={() => handleDelete(currentTaskId)}
+                                        disabled={deleteMutation.isLoading}
+                                    >
+                                        Delete
+                                    </Button>
 
-                                <Button
-                                    variant="outlined"
-                                    color="primary"
-                                    startIcon={<Edit />}
-                                    size="small"
-                                    onClick={() => handleEdit(task)}
-                                >
-                                    Редагувати
-                                </Button>
-                            </Box>
-                        </CardContent>
-                    </Card>
-                ))
+                                    <Button
+                                        variant="outlined"
+                                        color="primary"
+                                        startIcon={<Edit />}
+                                        size="small"
+                                        onClick={() => handleEdit(task)}
+                                    >
+                                        Edit
+                                    </Button>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    );
+                })
             ) : (
-                <Typography variant="body1">Немає завдань</Typography>
+                <Typography variant="body1">No tasks</Typography>
             )}
 
             <Dialog open={!!editingTask} onClose={handleCloseEdit} maxWidth="sm" fullWidth>
-                <DialogTitle>Редагувати завдання</DialogTitle>
+                <DialogTitle>Edit task</DialogTitle>
                 <DialogContent>
                     <TextField
-                        label="Назва"
+                        label="Title"
                         fullWidth
                         value={editFormData.title}
                         onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
                         margin="normal"
                     />
                     <TextField
-                        label="Опис"
+                        label="Description"
                         fullWidth
                         multiline
                         rows={3}
