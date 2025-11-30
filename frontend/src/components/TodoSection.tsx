@@ -1,19 +1,14 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import TodoList from "./TodoList";
 import TodoModal from "./TodoModal";
 import {Typography} from "@mui/material";
+import { useAuth } from "@/api/authContext";
 
 export default function TodoSection() {
     const [open, setOpen] = useState(false);
-    const [user, setUser] = useState<{ id: string; username: string } | null>(null);
-    useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-    }, []);
+    const { user } = useAuth();
 
     const handleOpenModal = () => setOpen(true);
     const handleCloseModal = () => setOpen(false);

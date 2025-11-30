@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -9,29 +9,21 @@ import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import TextField from "@mui/material/TextField";
-import DialogActions from "@mui/material/DialogActions";
 import Box from "@mui/material/Box";
 import { registerUser, loginUser, logoutUser } from "@/api/user";
 import {Alert, Snackbar} from "@mui/material";
 import { useQueryClient } from "react-query";
+import { useAuth } from "@/api/authContext";
 
 
 export default function Header() {
     const [open, setOpen] = useState(false);
-    const [user, setUser] = useState<{ id: string; username: string } | null>(null);
     const [isLogin, setIsLogin] = useState(true);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [isAuth, setIsAuth] = useState(false);
     const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
     const queryClient = useQueryClient();
-
-
-    useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-
-        if (storedUser) setIsAuth(true);
-    }, []);
+    const { user, isAuth, login, logout } = useAuth();
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
 
@@ -46,11 +38,8 @@ export default function Header() {
         try {
             if (isLogin) {
                 const res = await loginUser({ username, password });
-                localStorage.setItem("accessToken", res.accessToken);
-                localStorage.setItem("refreshToken", res.refreshToken);
-                localStorage.setItem("user", JSON.stringify(res.user));
+                login(res);
                 handleSnackbar("Login successful!", "success");
-                setIsAuth(true);
             } else {
                 await registerUser({ username, password });
                 handleSnackbar("Registration successful! You can now login.", "success");
@@ -67,10 +56,7 @@ export default function Header() {
     const handleLogout = async () => {
         try {
             await logoutUser();
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-            localStorage.removeItem("user");
-            setIsAuth(false);
+            logout();
             queryClient.clear();
             handleSnackbar("Logged out successfully!", "success");
         } catch {
@@ -82,7 +68,7 @@ export default function Header() {
         <>
             <AppBar position="static">
                 <Toolbar>
-                    <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                    <Typography variant="h6" sx={{ flexGrow: 1 }} component="a" href="/">
                         My ToDo App
                     </Typography>
                     {isAuth ? (
