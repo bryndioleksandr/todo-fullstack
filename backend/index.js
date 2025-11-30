@@ -10,7 +10,10 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-    origin: true,
+    origin: [
+        "http://localhost:3000",
+        "https://my.vercel.app"
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -24,7 +27,7 @@ app.use(router);
 const startServer = async () => {
     try {
         await connectDB();
-        console.log('posgresql db connected');
+        console.log('postgresql db connected');
 
         await sequelize.sync({ alter: true });
         const PORT = process.env.PORT || 5501;
