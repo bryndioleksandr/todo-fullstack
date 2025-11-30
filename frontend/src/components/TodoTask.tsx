@@ -1,20 +1,9 @@
 import {Box, Button, Card, CardContent, Chip, Typography} from "@mui/material";
 import {Delete, Edit} from "@mui/icons-material";
 import React from "react";
+import { getStatusColor } from "@/utils/taskUtils";
 
 export const TaskCardUI = ({task, onDelete, onEdit, onStatusChange, isOverlay = false}: any) => {
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case "done":
-                return "success";
-            case "in-progress":
-                return "warning";
-            case "todo":
-                return "default";
-            default:
-                return "default";
-        }
-    };
 
     return (
         <Card sx={{
